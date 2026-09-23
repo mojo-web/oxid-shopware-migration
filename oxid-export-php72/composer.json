@@ -1,0 +1,26 @@
+{
+    "name": "mojo/oxid-export-php72",
+    "description": "PHP 7.2-compatible OXID 6.3 \u2192 JSON exporter (runs directly on the OXID server)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=7.2",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-mbstring": "*",
+        "symfony/console": "^5.4",
+        "symfony/yaml": "^5.4",
+        "doctrine/dbal": "^2.13"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mojo\\OxidExport\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/export"
+    ],
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "name": "mojo/oxid-export-standalone",
+    "description": "Dependency-free OXID 6.3 → JSON exporter (PHP 7.2..8.x, no Composer needed to run)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=7.2",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-mbstring": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mojo\\OxidExport\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/export"
+    ]
+}

@@ -1,0 +1,82 @@
+# mapping.yaml — controls how the OXID export resolves images, manufacturers
+# and custom properties. Pass it with:  php bin/export --mapping=mapping.yaml ...
+#
+# Everything here is applied at EXPORT time; the resulting oxid-export.json is
+# self-contained, so the Shopware importer needs no config of its own.
+
+# Fallback VAT % used when an article has no explicit OXVAT.
+default_vat: 19.0
+
+# Umsatzsteuer-Mapping für Produkte.
+# mode: oxid     -> OXVAT je Artikel übernehmen (Fallback: default_vat)  [Standard]
+#       standard -> ALLE Produkte auf standard_rate setzen
+#       reduced  -> ALLE Produkte auf reduced_rate setzen (z. B. Bücher/Comics 7%)
+# map (optional): einzelne Roh-Sätze gezielt umlenken, z. B. Corona-Sätze.
+vat:
+  mode: oxid
+  standard_rate: 19.0
+  reduced_rate: 7.0
+  # map:
+  #   16: standard    # 16% (2020) wie Standard behandeln
+  #   5: reduced      # 5%  (2020) wie ermäßigt behandeln
+  #   19: reduced     # Beispiel: falsch gepflegte 19%-Artikel auf 7% zwingen
+
+images:
+  # --- URL mode: products reference a direct OXID image URL ---
+  # OXID stores masters under: out/pictures/master/product/<index>/<filename>
+  # The exporter builds: <base_url>/<index>/<OXPICn filename>
+  base_url: "https://old-shop.example.com/out/pictures/master/product"
+
+  # --- Copy mode: physically copy master images into an export folder under a
+  # stable temporary name and reference that name (image "file") in the JSON. ---
+  # source_dir = local path to the OXID master product picture folder
+  # copy_to    = folder the exporter writes the renamed copies into
+  # Point the importer at copy_to via:  bin/console mojo:oxid:import --media-dir=...
+  # Leave both empty to disable copy mode. URL and copy mode can be combined;
+  # the importer prefers the local file when --media-dir is given.
+  source_dir: "/var/www/oxid/source/out/pictures/master/product"
+  copy_to: "./media-export"
+
+  # Which OXPIC fields to include (1..12). The first non-empty one is the cover.
+  pic_fields: [1, 2, 3, 4, 5, 6]
+
+manufacturers:
+  # Export oxmanufacturers and link products via OXMANUFACTURERID.
+  enabled: true
+
+orders:
+  # Export oxorder + oxorderarticles as historical Shopware order snapshots.
+  enabled: true
+
+customers:
+  # Export oxuser (incl. embedded billing address + password hash/salt) and
+  # oxaddress delivery addresses. Passwords migrate via the OxidLegacy encoder;
+  # customers can log in with their existing password (re-hashed on first login).
+  enabled: true
+
+# Custom properties → Shopware property groups + options.
+# Each entry becomes one property group. Products get the matching options
+# linked as "Properties" (filterable specifications, not variant options).
+properties:
+  # Example: used-goods condition stored as an OXID attribute named "Zustand".
+  - group: "Zustand"
+    source: attribute          # read from oxobject2attribute / oxattribute
+    oxid_attribute: "Zustand"  # matched against oxattribute.OXTITLE (case-insensitive)
+    # Optional: whitelist + rename. Keys are the raw OXID values (case-insensitive);
+    # values are the clean Shopware labels. Raw values not listed here are skipped.
+    options:
+      "sehr gut": "Sehr gut"
+      "gut": "Gut"
+      "akzeptabel": "Akzeptabel"
+      "neuwertig": "Neuwertig"
+      "gebraucht": "Gebraucht"
+
+  # Example: a property read straight from a custom oxarticles column.
+  # - group: "Material"
+  #   source: field
+  #   oxid_field: "OXMATERIAL"
+
+  # Example: pass-through attribute with no whitelist (all values kept as-is).
+  # - group: "Farbe"
+  #   source: attribute
+  #   oxid_attribute: "Farbe"

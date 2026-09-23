@@ -1,0 +1,21 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Mojo\OxidExport\Command\ExportCommand;
+use Symfony\Component\Console\Application;
+
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (!is_file($autoload)) {
+    fwrite(STDERR, "Run `composer install` in the oxid-export directory first.\n");
+    exit(1);
+}
+require $autoload;
+
+$command = new ExportCommand();
+
+$application = new Application('OXID 6.3 → JSON Exporter', '1.0.0');
+$application->add($command);
+$application->setDefaultCommand($command->getName() ?? 'oxid:export', true);
+$application->run();

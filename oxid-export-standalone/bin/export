@@ -1,0 +1,97 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Standalone: no Composer, no vendor. Runs on PHP 7.2 .. 8.x with ext-pdo + ext-mbstring.
+
+require __DIR__ . '/../src/Lib/Spyc.php';
+
+spl_autoload_register(function ($class) {
+    $prefix = 'Mojo\\OxidExport\\';
+    $len = strlen($prefix);
+    if (strncmp($class, $prefix, $len) !== 0) {
+        return;
+    }
+    $relative = substr($class, $len);
+    $file = __DIR__ . '/../src/' . str_replace('\\', '/', $relative) . '.php';
+    if (is_file($file)) {
+        require $file;
+    }
+});
+
+$valueOptions = ['out', 'o', 'mapping', 'm', 'oxid-config', 'db-host', 'db-port', 'db-name', 'db-user', 'db-pass', 'default-vat'];
+$flagOptions  = ['skip-orders', 'skip-customers', 'help', 'h'];
+$aliases      = ['o' => 'out', 'm' => 'mapping', 'h' => 'help'];
+
+$opts = [];
+$argvList = array_slice($argv, 1);
+$count = count($argvList);
+for ($i = 0; $i < $count; $i++) {
+    $arg = $argvList[$i];
+    if (strncmp($arg, '--', 2) === 0) {
+        $arg = substr($arg, 2);
+    } elseif (strncmp($arg, '-', 1) === 0) {
+        $arg = substr($arg, 1);
+    } else {
+        continue;
+    }
+
+    $value = null;
+    if (strpos($arg, '=') !== false) {
+        list($arg, $value) = explode('=', $arg, 2);
+    }
+
+    $key = isset($aliases[$arg]) ? $aliases[$arg] : $arg;
+
+    if (in_array($arg, $flagOptions, true) || in_array($key, $flagOptions, true)) {
+        $opts[$key] = true;
+        continue;
+    }
+
+    if ($value === null && in_array($arg, $valueOptions, true)) {
+        if ($i + 1 < $count && strncmp($argvList[$i + 1], '-', 1) !== 0) {
+            $value = $argvList[$i + 1];
+            $i++;
+        } else {
+            $value = '';
+        }
+    }
+
+    if ($value !== null) {
+        $opts[$key] = $value;
+    }
+}
+
+if (!empty($opts['help'])) {
+    fwrite(STDOUT, <<<TXT
+OXID 6.3 -> JSON exporter (standalone, no dependencies)
+
+Usage:
+  php bin/export [options]
+
+Options:
+  --oxid-config=PATH   Path to OXID source/config.inc.php (reads DB credentials)
+  --db-host=HOST       DB host (or env OXID_DB_HOST)          default 127.0.0.1
+  --db-port=PORT       DB port                                 default 3306
+  --db-name=NAME       DB name (or env OXID_DB_NAME)
+  --db-user=USER       DB user (or env OXID_DB_USER)
+  --db-pass=PASS       DB password (or env OXID_DB_PASS)
+  -m, --mapping=PATH   Path to mapping.yaml
+  -o, --out=PATH       Output JSON file            default oxid-export.json
+  --default-vat=NUM    Fallback VAT % when OXVAT is null       default 19
+  --skip-orders        Do not export orders
+  --skip-customers     Do not export customers
+  -h, --help           Show this help
+
+Example:
+  php bin/export --oxid-config=/var/www/oxid/source/config.inc.php \
+                 --mapping=mapping.yaml --out=oxid-export.json
+
+TXT
+    );
+    exit(0);
+}
+
+$runner = new Mojo\OxidExport\ExportRunner();
+exit($runner->run($opts));
